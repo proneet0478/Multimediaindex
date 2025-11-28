@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShareSpace Pro - Secure Transfer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Modern Dark Theme */
+        body { background-color: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .masonry-item { break-inside: avoid; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- NAVIGATION -->
+    <nav class="sticky top-0 z-50 glass border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-500/30"><i class="fa-solid fa-bolt"></i></div>
+                <h1 class="font-bold text-lg tracking-wide hidden sm:block">PC ELECTRICALS</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="hidden md:block text-right">
+                    <p id="user-name" class="text-sm font-bold text-slate-200">Guest</p>
+                    <div class="flex items-center justify-end gap-1.5"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span><span class="text-[10px] text-green-400">ONLINE</span></div>
+                </div>
+                <button id="logout-btn" class="p-2 text-slate-400 hover:text-red-400 transition-colors"><i class="fa-solid fa-power-off text-xl"></i></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loader" class="fixed inset-0 z-[60] bg-[#0f172a] flex flex-col items-center justify-center">
+        <i class="fa-solid fa-circle-notch fa-spin text-5xl text-blue-500 mb-4"></i>
+        <p class="text-slate-400 font-mono animate-pulse">CONNECTING TO SECURE SERVER...</p>
+    </div>
+
+    <!-- AUTHENTICATION -->
+    <div id="auth-view" class="hidden flex-1 flex items-center justify-center p-4">
+        <div class="glass w-full max-w-md p-8 rounded-2xl shadow-2xl border border-slate-700">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-white mb-2">Team Access</h2>
+                <p class="text-slate-400">Login to share project files</p>
+            </div>
+            <form id="auth-form" class="space-y-4">
+                <input type="email" id="email" required class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="Enter Email">
+                <input type="password" id="password" required class="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="Enter Password">
+                <p id="auth-error" class="hidden text-red-400 text-sm bg-red-900/20 p-3 rounded border border-red-900/50"></p>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-lg transition-all shadow-lg shadow-blue-600/20">ACCESS DASHBOARD</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dash-view" class="hidden flex-1 relative flex flex-col">
+        <!-- Floating Action Button -->
+        <button id="open-upload" class="fixed bottom-8 right-8 z-40 bg-blue-600 hover:bg-blue-500 text-white w-16 h-16 rounded-full shadow-2xl shadow-blue-500/40 flex items-center justify-center transition-transform hover:scale-105">
+            <i class="fa-solid fa-plus text-2xl"></i>
+        </button>
+
+        <main class="flex-1 max-w-7xl mx-auto w-full p-4">
+            <div id="feed" class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 pb-24"></div>
+            <div id="empty" class="hidden text-center py-32 text-slate-500">
+                <i class="fa-solid fa-box-open text-6xl mb-4 opacity-50"></i>
+                <p>No files shared yet.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- UPLOAD MODAL -->
+    <div id="upload-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-sm" id="close-modal-bg"></div>
+        <div class="glass w-full max-w-xl rounded-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh] shadow-2xl border border-slate-600">
+            
+            <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-cloud-arrow-up mr-2 text-blue-500"></i>Upload Center</h3>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="p-6 overflow-y-auto">
+                <!-- TABS -->
+                <div class="flex bg-slate-800 p-1 rounded-lg mb-6 border border-slate-700">
+                    <button id="tab-file" class="flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white shadow">File Upload</button>
+                    <button id="tab-link" class="flex-1 py-2 rounded text-sm font-bold text-slate-400 hover:text-white">Video Link</button>
+                </div>
+
+                <!-- MODE: FILE -->
+                <div id="view-file">
+                    <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500 hover:bg-slate-800/50 transition-all relative group cursor-pointer">
+                        <input type="file" id="file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div id="drop-content">
+                            <i class="fa-solid fa-folder-open text-4xl text-slate-500 mb-3 group-hover:text-blue-400 transition-colors"></i>
+                            <h4 class="font-bold text-slate-300">Tap to Select File</h4>
+                            <p class="text-xs text-slate-500 mt-1">Supports Images & Videos (Max 2GB)</p>
+                        </div>
+                        <div id="file-selected" class="hidden">
+                            <i class="fa-solid fa-check-circle text-4xl text-green-500 mb-2"></i>
+                            <h4 id="filename" class="font-bold text-white truncate px-4">file.mp4</h4>
+                            <p id="filesize" class="text-xs text-green-400 font-mono">0 MB</p>
+                        </div>
+                    </div>
+
+                    <!-- ERROR BOX (CORS) -->
+                    <div id="cors-error-box" class="hidden mt-4 p-4 bg-amber-900/20 border border-amber-600/50 rounded-lg">
+                        <h5 class="text-amber-500 font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-lock"></i> Security Upload Error (CORS)</h5>
+                        <p class="text-xs text-amber-200/80 mt-2 mb-3">Your browser blocked the direct file upload. This happens when opening HTML files directly.</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="https://app.netlify.com/drop" target="_blank" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-3 rounded text-center">
+                                Fix 1: Use Netlify Drop
+                            </a>
+                            <button id="switch-to-link" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2 px-3 rounded">
+                                Fix 2: Switch to Link Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODE: LINK -->
+                <div id="view-link" class="hidden space-y-4">
+                    <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg">
+                        <p class="text-sm text-blue-200"><i class="fa-solid fa-info-circle mr-1"></i> <strong>Pro Tip:</strong> For huge files (10GB+), upload to Google Drive or YouTube first, then paste the link here. It's faster and 100% free.</p>
+                    </div>
+                    <input type="url" id="link-input" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-blue-500 outline-none" placeholder="Paste https:// link here...">
+                </div>
+
+                <div class="mt-6">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Description</label>
+                    <input type="text" id="caption" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 mt-1 text-white focus:border-blue-500 outline-none" placeholder="What is this?">
+                </div>
+
+                <!-- PROGRESS -->
+                <div id="progress-container" class="hidden mt-6 bg-slate-900 p-4 rounded-lg border border-slate-700">
+                    <div class="flex justify-between text-xs text-blue-400 font-mono mb-2">
+                        <span id="status-text">INITIALIZING...</span>
+                        <span id="pct-text">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="prog-bar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <button id="upload-btn" class="w-full mt-6 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all flex items-center justify-center gap-2">
+                    START TRANSFER <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // --- CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCc8EStM8ipp9F6qonvFbHlRiYyAXzCSKQ",
+            authDomain: "pc-electricals.firebaseapp.com",
+            projectId: "pc-electricals",
+            storageBucket: "pc-electricals.firebasestorage.app",
+            messagingSenderId: "972634890564",
+            appId: "1:972634890564:web:b72f7095c182b188d1b711",
+            measurementId: "G-L207X8J70P"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+        
+        let currentUser = null;
+        let selectedFile = null;
+        let mode = 'file'; // 'file' or 'link'
+
+        // --- DOM ELEMENTS ---
+        const el = (id) => document.getElementById(id);
+        const views = {
+            loader: el('loader'),
+            auth: el('auth-view'),
+            dash: el('dash-view'),
+            modal: el('upload-modal')
+        };
+
+        // --- AUTH FLOW ---
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            views.loader.classList.add('hidden');
+            if (user) {
+                views.auth.classList.add('hidden');
+                views.dash.classList.remove('hidden');
+                el('user-name').innerText = user.email.split('@')[0];
+                loadFeed();
+            } else {
+                views.dash.classList.add('hidden');
+                views.auth.classList.remove('hidden');
+            }
+        });
+
+        el('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = "VERIFYING...";
+            btn.disabled = true;
+            
+            try {
+                await signInWithEmailAndPassword(auth, el('email').value, el('password').value);
+            } catch (err) {
+                el('auth-error').innerText = "Login Failed: " + err.message;
+                el('auth-error').classList.remove('hidden');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        el('logout-btn').addEventListener('click', () => signOut(auth));
+
+        // --- FEED LOGIC ---
+        function loadFeed() {
+            const q = query(collection(db, 'pc_secure_files'), orderBy('createdAt', 'desc'));
+            onSnapshot(q, (snap) => {
+                const feed = el('feed');
+                feed.innerHTML = '';
+                if (snap.empty) el('empty').classList.remove('hidden');
+                else {
+                    el('empty').classList.add('hidden');
+                    snap.forEach(doc => feed.appendChild(createPost(doc.data())));
+                }
+            });
+        }
+
+        function createPost(data) {
+            const div = document.createElement('div');
+            div.className = 'masonry-item glass rounded-xl overflow-hidden border border-slate-700 bg-slate-800/40 fade-in';
+            
+            let media = '';
+            // Intelligent media rendering
+            if (data.type === 'video' || data.url.match(/\.(mp4|mov|webm)$/i)) {
+                media = `<video src="${data.url}" controls class="w-full bg-black max-h-[400px]" preload="metadata"></video>`;
+            } else if (data.url.includes('youtube') || data.url.includes('youtu.be')) {
+                const vidId = data.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1];
+                media = vidId ? `<iframe class="w-full aspect-video" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe>` : `<a href="${data.url}" target="_blank" class="block p-4 text-blue-400 underline">Watch Video</a>`;
+            } else if (data.url.includes('drive.google.com')) {
+                 media = `<div class="p-8 text-center bg-slate-900"><i class="fa-brands fa-google-drive text-5xl text-green-500 mb-2"></i><br><a href="${data.url}" target="_blank" class="text-blue-400 font-bold hover:underline">Open Google Drive File</a></div>`;
+            } else {
+                media = `<img src="${data.url}" class="w-full h-auto object-cover max-h-[500px]" loading="lazy">`;
+            }
+
+            div.innerHTML = `
+                <div class="p-3 border-b border-slate-700 flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-300 truncate">${data.user}</span>
+                    <span class="text-[10px] font-mono text-slate-500">${new Date(data.createdAt?.toDate()).toLocaleDateString()}</span>
+                </div>
+                ${media}
+                <div class="p-3">
+                    <p class="text-sm text-slate-200">${data.caption || 'No description'}</p>
+                </div>
+            `;
+            return div;
+        }
+
+        // --- UPLOAD LOGIC ---
+        
+        // Modal & Tabs
+        el('open-upload').onclick = () => { views.modal.classList.remove('hidden'); resetForm(); };
+        el('close-modal-btn').onclick = () => views.modal.classList.add('hidden');
+        el('close-modal-bg').onclick = () => views.modal.classList.add('hidden');
+
+        function switchTab(newMode) {
+            mode = newMode;
+            el('tab-file').className = mode === 'file' ? 'flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white shadow' : 'flex-1 py-2 rounded text-sm font-bold text-slate-400 hover:text-white';
+            el('tab-link').className = mode === 'link' ? 'flex-1 py-2 rounded text-sm font-bold bg-slate-600 text-white shadow' : 'flex-1 py-2 rounded text-sm font-bold text-slate-400 hover:text-white';
+            el('view-file').classList.toggle('hidden', mode !== 'file');
+            el('view-link').classList.toggle('hidden', mode !== 'link');
+        }
+
+        el('tab-file').onclick = () => switchTab('file');
+        el('tab-link').onclick = () => switchTab('link');
+        
+        // Fallback Button Action
+        el('switch-to-link').onclick = (e) => {
+            e.preventDefault();
+            switchTab('link');
+            // Auto-fill a hint if needed
+            el('caption').placeholder = "Paste your link here instead...";
+        };
+
+        function resetForm() {
+            el('file-input').value = '';
+            el('link-input').value = '';
+            el('caption').value = '';
+            selectedFile = null;
+            el('drop-content').classList.remove('hidden');
+            el('file-selected').classList.add('hidden');
+            el('progress-container').classList.add('hidden');
+            el('cors-error-box').classList.add('hidden');
+            el('upload-btn').disabled = false;
+            el('upload-btn').innerHTML = 'START TRANSFER <i class="fa-solid fa-paper-plane"></i>';
+        }
+
+        // File Select
+        el('file-input').onchange = (e) => {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                el('drop-content').classList.add('hidden');
+                el('file-selected').classList.remove('hidden');
+                el('filename').innerText = selectedFile.name;
+                el('filesize').innerText = (selectedFile.size / (1024*1024)).toFixed(2) + ' MB';
+            }
+        };
+
+        // SUBMIT
+        el('upload-btn').onclick = async () => {
+            const caption = el('caption').value;
+            let finalUrl = '';
+            let type = 'image';
+
+            el('upload-btn').disabled = true;
+
+            try {
+                if (mode === 'file') {
+                    if (!selectedFile) throw new Error("Please select a file first.");
+                    
+                    type = selectedFile.type.startsWith('video') ? 'video' : 'image';
+                    el('progress-container').classList.remove('hidden');
+                    el('status-text').innerText = "CONNECTING...";
+
+                    // Create Storage Reference
+                    const storageRef = ref(storage, 'uploads/' + Date.now() + '_' + selectedFile.name);
+                    const uploadTask = uploadBytesResumable(storageRef, selectedFile);
+
+                    await new Promise((resolve, reject) => {
+                        uploadTask.on('state_changed', 
+                            (snapshot) => {
+                                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                                el('prog-bar').style.width = progress + '%';
+                                el('pct-text').innerText = Math.round(progress) + '%';
+                                el('status-text').innerText = "UPLOADING...";
+                            }, 
+                            (error) => {
+                                // DETECT CORS ERROR HERE
+                                if (error.message.includes('network') || error.code === 'storage/retry-limit-exceeded' || error.code === 'storage/unknown') {
+                                    el('cors-error-box').classList.remove('hidden');
+                                    el('progress-container').classList.add('hidden');
+                                                                  }
+                                reject(error);
+                            }, 
+                            async () => {
+                                finalUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                                resolve();
+                            }
+                        );
+                    });
+                } else {
+                    // LINK MODE
+                    finalUrl = el('link-input').value;
+                    if (!finalUrl) throw new Error("Please enter a link.");
+                    type = 'link';
+                }
+
+                // SAVE TO DB
+                el('status-text').innerText = "SAVING...";
+                await addDoc(collection(db, 'pc_secure_files'), {
+                    url: finalUrl,
+                    type: type,
+                    caption: caption,
+                    user: currentUser.email.split('@')[0],
+                    createdAt: serverTimestamp()
+                });
+
+                views.modal.classList.add('hidden');
+                resetForm();
+
+            } catch (err) {
+                console.error(err);
+                if (!el('cors-error-box').classList.contains('hidden')) {
+                    // CORS error already handled visually
+                } else {
+                    alert("Error: " + err.message);
+                }
+                el('upload-btn').disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
